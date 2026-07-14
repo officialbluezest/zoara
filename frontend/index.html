@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Zoara — Content Creation Engine</title>
+<link rel="stylesheet" href="/assets/style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-left">
+    <div class="logo">Zo<span class="logo-accent">ara</span></div>
+    <span class="tagline">Content, done right.</span>
+  </div>
+  <div class="topbar-right">
+    <select id="brandSelector" class="brand-select" title="Switch brand"></select>
+    <button id="newBrandBtn" class="btn btn-ghost">+ New Brand</button>
+    <button id="readinessBtn" class="btn btn-accent">Check Readiness</button>
+  </div>
+</header>
+
+<div class="app-shell">
+
+  <nav class="sidebar" id="sidebar">
+    <button class="tab-btn active" data-tab="strategy">1. Brand &amp; Strategy</button>
+    <button class="tab-btn" data-tab="competitors">2. Competitors</button>
+    <button class="tab-btn" data-tab="formatplatform">3. Format &amp; Platform</button>
+    <button class="tab-btn" data-tab="inspo">4. Inspiration Rooms</button>
+    <button class="tab-btn" data-tab="goals">5. Goals</button>
+    <button class="tab-btn" data-tab="build">6. Build &amp; Length</button>
+    <button class="tab-btn" data-tab="angle">7. Creative Angle</button>
+    <button class="tab-btn" data-tab="research">8. Research</button>
+    <button class="tab-btn" data-tab="studio">9. Content Studio</button>
+    <button class="tab-btn" data-tab="knowledge">Knowledge Panel</button>
+  </nav>
+
+  <main class="content">
+
+    <!-- TAB 1: STRATEGY -->
+    <section class="tab-panel active" id="tab-strategy">
+      <h1>Brand &amp; Strategy</h1>
+      <p class="subtext">Start here. Give Zoara a name for this brand, then either upload a strategy doc or answer the questions a senior strategist would actually ask.</p>
+
+      <div class="card">
+        <label class="field-label">Brand name</label>
+        <input id="brandNameInput" type="text" placeholder="e.g. Willow Yoga Studio" class="text-input">
+        <button id="saveBrandNameBtn" class="btn btn-primary" style="margin-top:10px;">Save name</button>
+      </div>
+
+      <div class="card">
+        <label class="field-label">Strategy document (optional)</label>
+        <p class="hint">Upload a .docx, .pdf, or .txt strategy doc and Zoara will read it and pre-fill the answers below like a strategist would — you can still edit anything.</p>
+        <input type="file" id="strategyDocInput" accept=".docx,.pdf,.txt">
+        <button id="uploadDocBtn" class="btn btn-primary" style="margin-top:10px;">Upload &amp; Analyze</button>
+        <div id="docUploadStatus" class="status-line"></div>
+      </div>
+
+      <div class="card">
+        <label class="field-label">Strategy questions</label>
+        <p class="hint">Answer these the way you'd brief a strategist you trust. None are required to view other tabs — but the starred ones are required before final submit.</p>
+        <div id="strategyQuestionsList"></div>
+        <button id="saveStrategyBtn" class="btn btn-primary" style="margin-top:14px;">Save strategy answers</button>
+        <div id="strategySaveStatus" class="status-line"></div>
+      </div>
+    </section>
+
+    <!-- TAB 2: COMPETITORS -->
+    <section class="tab-panel" id="tab-competitors">
+      <h1>Competitors</h1>
+      <p class="subtext">Add competitor websites or social profiles. Zoara reads and summarizes their positioning to sharpen your contrast — she never copies them.</p>
+      <div class="card">
+        <div class="inline-form">
+          <input id="competitorUrlInput" type="text" placeholder="https://competitor.com or social profile URL" class="text-input">
+          <input id="competitorLabelInput" type="text" placeholder="Label (optional)" class="text-input small">
+          <button id="addCompetitorBtn" class="btn btn-primary">Add &amp; Analyze</button>
+        </div>
+        <div id="competitorAddStatus" class="status-line"></div>
+      </div>
+      <div id="competitorsList" class="card-list"></div>
+    </section>
+
+    <!-- TAB 3: FORMAT & PLATFORM -->
+    <section class="tab-panel" id="tab-formatplatform">
+      <h1>Format &amp; Platform</h1>
+      <p class="subtext">Pick every format and platform you want in this content run. Everything downstream — inspiration prompts, length options, generation — reconditions itself based on what you pick here.</p>
+      <div class="card">
+        <label class="field-label">Content formats</label>
+        <div id="formatPills" class="pill-grid"></div>
+      </div>
+      <div class="card">
+        <label class="field-label">Platforms</label>
+        <div id="platformPills" class="pill-grid"></div>
+      </div>
+      <button id="saveFormatsPlatformsBtn" class="btn btn-primary">Save selections</button>
+      <div id="formatsPlatformsStatus" class="status-line"></div>
+    </section>
+
+    <!-- TAB 4: INSPIRATION -->
+    <section class="tab-panel" id="tab-inspo">
+      <h1>Inspiration Rooms</h1>
+      <p class="subtext">Five rooms, each teaching Zoara a different part of your taste. The dropdowns shown here change based on the formats you selected in Tab 3. The most important field is always <strong>why you like it</strong> — that's what actually gets learned.</p>
+      <div class="room-tabs" id="roomTabs"></div>
+      <div class="card">
+        <div id="inspoDropdownArea"></div>
+        <label class="field-label">Link</label>
+        <input id="inspoUrlInput" type="text" placeholder="Paste a link from any platform" class="text-input">
+        <label class="field-label">What specifically do you like about it?</label>
+        <textarea id="inspoNoteInput" class="text-area" placeholder="Be specific — the hook, the pacing, the visuals, the CTA, the vibe..."></textarea>
+        <button id="addInspoBtn" class="btn btn-primary" style="margin-top:10px;">Add to room</button>
+        <div id="inspoAddStatus" class="status-line"></div>
+      </div>
+      <div id="inspoList" class="card-list"></div>
+    </section>
+
+    <!-- TAB 5: GOALS -->
+    <section class="tab-panel" id="tab-goals">
+      <h1>Content Goals</h1>
+      <div class="card">
+        <label class="field-label">Primary goal</label>
+        <div id="goalPills" class="pill-grid"></div>
+        <label class="field-label" style="margin-top:16px;">Calendar period</label>
+        <div id="periodPills" class="pill-grid"></div>
+        <button id="saveGoalsBtn" class="btn btn-primary" style="margin-top:14px;">Save goals</button>
+        <div id="goalsStatus" class="status-line"></div>
+      </div>
+    </section>
+
+    <!-- TAB 6: BUILD & LENGTH -->
+    <section class="tab-panel" id="tab-build">
+      <h1>Build &amp; Length</h1>
+      <p class="subtext">Configured per format — select your formats in Tab 3 first.</p>
+      <div id="buildSpecArea"></div>
+      <button id="saveBuildSpecBtn" class="btn btn-primary">Save build specs</button>
+      <div id="buildSpecStatus" class="status-line"></div>
+    </section>
+
+    <!-- TAB 7: CREATIVE ANGLE -->
+    <section class="tab-panel" id="tab-angle">
+      <h1>Creative Angle <span class="optional-tag">optional</span></h1>
+      <div class="card">
+        <label class="field-label">Structure</label>
+        <div class="pill-grid" id="anglePills">
+          <button class="pill" data-angle="standalone">Standalone posts</button>
+          <button class="pill" data-angle="series">Themed series</button>
+          <button class="pill" data-angle="campaign">Campaign with arc</button>
+        </div>
+        <label class="field-label" style="margin-top:14px;">Name / theme (if series or campaign)</label>
+        <input id="angleNameInput" type="text" class="text-input" placeholder="e.g. '30 Days to Calm' series">
+        <button id="saveAngleBtn" class="btn btn-primary" style="margin-top:14px;">Save creative angle</button>
+        <div id="angleStatus" class="status-line"></div>
+      </div>
+    </section>
+
+    <!-- TAB 8: RESEARCH -->
+    <section class="tab-panel" id="tab-research">
+      <h1>Research</h1>
+      <p class="subtext">Zoara searches real conversations — Reddit threads, Quora, Facebook groups, and general "people also ask"-style queries — related to your brand, and turns them into topic directions (not full scripts).</p>
+      <div class="card">
+        <button id="startResearchBtn" class="btn btn-primary">Run research (30 ideas)</button>
+        <div id="researchJobStatus" class="status-line"></div>
+        <p class="hint">This runs in the background — feel free to switch tabs while it works.</p>
+      </div>
+      <div class="research-filter" id="researchFilter">
+        <button class="filter-btn active" data-status="">All</button>
+        <button class="filter-btn" data-status="pending">Pending</button>
+        <button class="filter-btn" data-status="approved">Approved</button>
+        <button class="filter-btn" data-status="rejected">Rejected</button>
+        <button class="filter-btn" data-status="tweaked">Tweaked</button>
+      </div>
+      <div id="ideasList" class="card-list"></div>
+    </section>
+
+    <!-- TAB 9: CONTENT STUDIO -->
+    <section class="tab-panel" id="tab-studio">
+      <h1>Content Studio</h1>
+      <div class="card">
+        <label class="field-label">Generate from</label>
+        <select id="ideaSourceSelect" class="text-input"></select>
+        <input id="manualTopicInput" type="text" class="text-input" placeholder="Or type a manual topic directly" style="display:none; margin-top:8px;">
+        <div class="two-col" style="margin-top:12px;">
+          <div>
+            <label class="field-label">Format</label>
+            <select id="genFormatSelect" class="text-input"></select>
+          </div>
+          <div>
+            <label class="field-label">Platform</label>
+            <select id="genPlatformSelect" class="text-input"></select>
+          </div>
+        </div>
+        <button id="generateBtn" class="btn btn-primary" style="margin-top:14px;">Generate</button>
+        <div id="generateStatus" class="status-line"></div>
+      </div>
+      <div id="contentList" class="content-list"></div>
+    </section>
+
+    <!-- TAB 10: KNOWLEDGE PANEL -->
+    <section class="tab-panel" id="tab-knowledge">
+      <h1>Knowledge Panel</h1>
+      <p class="subtext">What grounds Zoara's writing instincts — the core standards she holds every piece of content to, plus the books, creators, and communities behind them.</p>
+      <div id="knowledgePanelArea"></div>
+    </section>
+
+  </main>
+</div>
+
+<!-- Readiness Modal -->
+<div class="modal-overlay" id="readinessModal">
+  <div class="modal">
+    <h2>Readiness Check</h2>
+    <div id="readinessResult"></div>
+    <button class="btn btn-ghost" id="closeReadinessModal">Close</button>
+  </div>
+</div>
+
+<!-- New Brand Modal -->
+<div class="modal-overlay" id="newBrandModal">
+  <div class="modal">
+    <h2>Create a new brand</h2>
+    <input id="newBrandNameInput" type="text" class="text-input" placeholder="Brand name">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="cancelNewBrand">Cancel</button>
+      <button class="btn btn-primary" id="confirmNewBrand">Create</button>
+    </div>
+  </div>
+</div>
+
+<script src="/assets/app.js"></script>
+</body>
+</html>
