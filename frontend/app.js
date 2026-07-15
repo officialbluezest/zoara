@@ -20,17 +20,75 @@ const ROOMS = [
 
 // ---------------- Utility ----------------
 
-async function api(path, opts = {}) {
-  const res = await fetch(API + path, {
-    headers: { "Content-Type": "application/json" },
-    ...opts,
-  });
-  if (!res.ok) {
-    let msg = res.statusText;
-    try { const j = await res.json(); msg = j.detail || msg; } catch (e) {}
-    throw new Error(msg);
+function showConnBanner(msg) {
+  let el = document.getElementById("connBanner");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "connBanner";
+    el.style.cssText = "position:fixed;top:0;left:0;right:0;background:#FFF6E0;color:#8A5D00;text-align:center;padding:8px;font-size:13px;font-weight:600;z-index:200;border-bottom:1px solid #E6A800;";
+    document.body.prepend(el);
   }
-  return res.json();
+  el.textContent = msg;
+  el.style.display = "block";
+}
+function hideConnBanner() {
+  const el = document.getElementById("connBanner");
+  if (el) el.style.display = "none";
+}
+
+function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+// Retries on network failure / cold-start-style errors (502/503/504) with
+// backoff, since Render's free tier can take 20-60s to wake from sleep.
+async function api(path, opts = {}, attempt = 1) {
+  const MAX_ATTEMPTS = 5;
+  try {
+    const res = await fetch(API + path, {
+      headers: { "Content-Type": "application/json" },
+      ...opts,
+    });
+    if ([502, 503, 504].includes(res.status) && attempt < MAX_ATTEMPTS) {
+      showConnBanner("Waking up Zoara's server — this can take up to a minute on the free tier...");
+      await sleep(attempt * 2000);
+      return api(path, opts, attempt + 1);
+    }
+    hideConnBanner();
+    if (!res.ok) {
+      let msg = res.statusText;
+      try { const j = await res.json(); msg = j.detail || msg; } catch (e) {}
+      throw new Error(msg);
+    }
+    return res.json();
+  } catch (err) {
+    if (attempt < MAX_ATTEMPTS) {
+      showConnBanner("Waking up Zoara's server — this can take up to a minute on the free tier...");
+      await sleep(attempt * 2000);
+      return api(path, opts, attempt + 1);
+    }
+    hideConnBanner();
+    throw err;
+  }
+}
+
+// Runs a render/load function without letting its failure block any other
+// tab from loading — each section fails independently. If a containerId is
+// given and the section fails, it shows a visible retry link there instead
+// of leaving a silent blank tab.
+async function safeRun(fn, label, containerId) {
+  try {
+    await fn();
+  } catch (err) {
+    console.error(`Zoara: "${label}" failed to load:`, err);
+    if (containerId) {
+      const el = document.getElementById(containerId);
+      if (el) {
+        el.innerHTML = `<p class="hint" style="color:var(--danger);">Couldn't load ${esc(label)} (${esc(err.message || "connection issue")}).
+          <a href="#" data-retry style="color:var(--navy);font-weight:600;">Retry</a></p>`;
+        const retryLink = el.querySelector("[data-retry]");
+        if (retryLink) retryLink.onclick = (e) => { e.preventDefault(); safeRun(fn, label, containerId); };
+      }
+    }
+  }
 }
 
 function setStatus(elId, msg, type = "") {
@@ -126,7 +184,10 @@ function wireReadinessModal() {
 
 // ---------------- Tab 1: Strategy ----------------
 
-function renderStrategyQuestions() {
+async function renderStrategyQuestions() {
+  if (!STATE.strategyQuestions || !STATE.strategyQuestions.length) {
+    STATE.strategyQuestions = await api("/meta/strategy-questions");
+  }
   const container = document.getElementById("strategyQuestionsList");
   const answers = (STATE.brand && STATE.brand.strategy_answers) || {};
   const required = ["offer", "transformation", "anti_audience", "business_goal"];
@@ -226,7 +287,9 @@ function wireCompetitorsTab() {
 
 // ---------------- Tab 3: Format & Platform ----------------
 
-function renderFormatPlatformPills() {
+async function renderFormatPlatformPills() {
+  if (!STATE.formats || !STATE.formats.length) STATE.formats = await api("/meta/formats");
+  if (!STATE.platforms || !STATE.platforms.length) STATE.platforms = await api("/meta/platforms");
   const selectedFormats = new Set((STATE.brand && STATE.brand.formats) || []);
   const selectedPlatforms = new Set((STATE.brand && STATE.brand.platforms) || []);
 
@@ -769,18 +832,18 @@ async function loadEverythingForBrand() {
   STATE.brand = await api(`/brands/${STATE.brandId}`);
   document.getElementById("brandNameInput").value = STATE.brand.name || "";
 
-  renderStrategyQuestions();
-  await loadCompetitors();
-  renderFormatPlatformPills();
-  renderRoomTabs();
-  await renderInspoDropdowns();
-  await loadInspoList();
-  renderGoalsTab();
-  await renderBuildSpecArea();
-  renderAngleTab();
-  await loadIdeas("");
-  await populateGenSelectors();
-  await loadContentList();
+  await safeRun(() => renderStrategyQuestions(), "strategy questions", "strategyQuestionsList");
+  await safeRun(() => loadCompetitors(), "competitors", "competitorsList");
+  await safeRun(() => renderFormatPlatformPills(), "format/platform pills", "formatPills");
+  await safeRun(() => renderRoomTabs(), "inspiration room tabs", "roomTabs");
+  await safeRun(() => renderInspoDropdowns(), "inspiration dropdowns", "inspoDropdownArea");
+  await safeRun(() => loadInspoList(), "inspiration list", "inspoList");
+  await safeRun(() => renderGoalsTab(), "goals", "goalPills");
+  await safeRun(() => renderBuildSpecArea(), "build/length specs", "buildSpecArea");
+  await safeRun(() => renderAngleTab(), "creative angle");
+  await safeRun(() => loadIdeas(""), "research ideas", "ideasList");
+  await safeRun(() => populateGenSelectors(), "content studio selectors");
+  await safeRun(() => loadContentList(), "content list", "contentList");
 }
 
 async function init() {
@@ -797,15 +860,15 @@ async function init() {
   wireResearchTab();
   wireStudioTab();
 
-  STATE.formats = await api("/meta/formats");
-  STATE.platforms = await api("/meta/platforms");
-  STATE.strategyQuestions = await api("/meta/strategy-questions");
+  await safeRun(async () => { STATE.formats = await api("/meta/formats"); }, "formats meta");
+  await safeRun(async () => { STATE.platforms = await api("/meta/platforms"); }, "platforms meta");
+  await safeRun(async () => { STATE.strategyQuestions = await api("/meta/strategy-questions"); }, "strategy questions meta");
 
-  await loadBrandList();
+  await safeRun(() => loadBrandList(), "brand list");
   if (STATE.brandId) {
-    await loadEverythingForBrand();
+    await safeRun(() => loadEverythingForBrand(), "brand data");
   }
-  await renderKnowledgePanel();
+  await safeRun(() => renderKnowledgePanel(), "knowledge panel");
 }
 
 document.addEventListener("DOMContentLoaded", init);
