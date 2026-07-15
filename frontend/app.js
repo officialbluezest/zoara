@@ -829,7 +829,26 @@ async function renderKnowledgePanel() {
 
 async function loadEverythingForBrand() {
   if (!STATE.brandId) return;
-  STATE.brand = await api(`/brands/${STATE.brandId}`);
+  try {
+    STATE.brand = await api(`/brands/${STATE.brandId}`);
+  } catch (err) {
+    // The saved brand ID no longer exists on the server - most commonly
+    // because a free-tier redeploy reset the database while this browser
+    // still remembered an old brand from before. Recover instead of
+    // crashing: forget the stale ID and fall back to whatever brands
+    // actually exist right now.
+    console.warn("Zoara: saved brand no longer exists, resetting:", err.message);
+    localStorage.removeItem("zoara_brand_id");
+    STATE.brandId = null;
+    STATE.brand = null;
+    await safeRun(() => loadBrandList(), "brand list");
+    if (STATE.brandId) {
+      return loadEverythingForBrand(); // retry once with whatever brand loadBrandList picked
+    }
+    document.getElementById("strategyQuestionsList").innerHTML =
+      `<p class="hint">That brand isn't available anymore (likely a server reset) — click <strong>+ New Brand</strong> above to start fresh.</p>`;
+    return;
+  }
   document.getElementById("brandNameInput").value = STATE.brand.name || "";
 
   await safeRun(() => renderStrategyQuestions(), "strategy questions", "strategyQuestionsList");
